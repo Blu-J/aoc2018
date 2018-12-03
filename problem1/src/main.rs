@@ -1,6 +1,7 @@
 extern crate hashbrown;
+extern crate im;
 
-use hashbrown::HashSet;
+use im::HashSet;
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::BufReader;
