@@ -12,6 +12,7 @@ fn main() -> Result<()> {
     let input = read_input()?;
     // let coords: Vec<_> = input.lines().map(|x| x.parse()).collect::<R<_, _>>()?;
     println!("Answer is {}", part_1(&input)?);
+    println!("Answer 2 is {}", part_2(&input, 10000)?);
     Ok(())
 }
 
@@ -40,8 +41,8 @@ fn test_manhattan() {
 
 #[derive(Eq, PartialEq, Debug)]
 struct Coord {
-    x: usize,
-    y: usize,
+    x: i64,
+    y: i64,
 }
 
 impl Coord {
@@ -51,8 +52,8 @@ impl Coord {
 
     fn empty_max() -> Coord {
         Coord {
-            x: usize::max_value(),
-            y: usize::max_value(),
+            x: i64::max_value(),
+            y: i64::max_value(),
         }
     }
 
@@ -80,8 +81,8 @@ impl FromStr for Coord {
             return Err("Could not parse the input".into());
         }
         Ok(Coord {
-            x: values[0],
-            y: values[1],
+            x: values[0] as i64,
+            y: values[1] as i64,
         })
     }
 }
@@ -142,19 +143,65 @@ fn coords_most_area(coords: &[Coord]) -> Result<u32> {
     for (x, column) in answer.iter().enumerate() {
         for (y, cell) in column.iter().enumerate() {
             if let Some(id) = cell {
-                if x <= lower_bounds.x || y <= lower_bounds.y || x >= bounds.x || y >= bounds.y {
+                if (x as i64) <= lower_bounds.x
+                    || (y as i64) <= lower_bounds.y
+                    || (x as i64) >= bounds.x
+                    || (y as i64) >= bounds.y
+                {
                     totals.remove(id);
                 }
             }
         }
     }
 
-    let (_, total) = match totals.iter().max_by_key(|(_, area)| *area) {
-        Some(x) => x,
-        _ => return Err("No totals where left".into()),
+    let total = match totals.iter().max_by_key(|(_, area)| *area) {
+        Some((_, total)) => *total,
+        _ => {
+            println!("We have no totals");
+            0
+        }
     };
 
-    Ok(*total)
+    Ok(total)
+}
+
+fn part_2(input: &str, max_distance: u32) -> Result<u32> {
+    let coords: Vec<_> = input.lines().map(|x| x.parse()).collect::<R<_, _>>()?;
+    coords_sum(&coords, max_distance)
+}
+
+fn coords_sum(coords: &[Coord], max_distance: u32) -> Result<u32> {
+    let bounds = coords.iter().fold(Coord::empty(), |x, y| x.expand_bound(y));
+    let offset = 32;
+    let extra_size = offset * 2;
+
+    let answer: Vec<Vec<u32>> = (0..=(bounds.x + extra_size))
+        .map(|x| {
+            (0..=(bounds.y + extra_size))
+                .map(|y| {
+                    let current = Coord {
+                        x: x - offset,
+                        y: y - offset,
+                    };
+                    let with_distance = coords
+                        .iter()
+                        .map(|coord| manhattan_distance(&current, coord))
+                        .sum();
+                    with_distance
+                })
+                .collect()
+        })
+        .collect();
+
+    let mut total = 0;
+    for column in answer {
+        for cell in column {
+            if cell < max_distance {
+                total += 1;
+            }
+        }
+    }
+    Ok(total)
 }
 
 #[test]
@@ -170,4 +217,19 @@ fn test_part_1() {
 9, 9"#;
     assert_eq!(17, part_1(&input).unwrap());
     assert_eq!(0, part_1(&input_2).unwrap());
+}
+
+#[test]
+fn test_part_2() {
+    let input = r#"1, 1
+1, 6
+8, 3
+3, 4
+5, 5
+8, 9"#;
+    let input_2 = r#"0, 0
+10, 0
+9, 9"#;
+    assert_eq!(16, part_2(&input, 32).unwrap());
+    // assert_eq!(0, part_2(&input_2, 32).unwrap());
 }
