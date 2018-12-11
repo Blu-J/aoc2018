@@ -8,6 +8,7 @@ use std::io::BufReader;
 use std::str::FromStr;
 
 type Result<T> = ::std::result::Result<T, Box<::std::error::Error>>;
+type R<A, B> = ::std::result::Result<A, B>;
 
 fn main() -> Result<()> {
     let input = read_input()?;
@@ -69,8 +70,7 @@ fn part_1(input: &str) -> Result<String> {
     let relationships: Vec<Relationship> = input
         .lines()
         .map(Relationship::from_str)
-        .map(|x| x.unwrap())
-        .collect();
+        .collect::<R<_, _>>()?;
 
     // Construct are relationship mapping of Node -> Set Nodes
     let mut map: HashMap<String, HashSet<String>> = HashMap::new();
@@ -114,8 +114,7 @@ fn part_2(input: &str, max_workers: usize, completion_time: u32) -> Result<u32> 
     let relationships: Vec<Relationship> = input
         .lines()
         .map(Relationship::from_str)
-        .map(|x| x.unwrap())
-        .collect();
+        .collect::<R<_, _>>()?;
 
     // Construct relation map Node -> Set Node
     let mut map: HashMap<String, HashSet<String>> = HashMap::new();
