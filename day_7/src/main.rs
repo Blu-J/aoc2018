@@ -16,6 +16,7 @@ type Id = usize;
 fn main() -> Result<()> {
     let input = read_input()?;
     println!("Part 1 {}", part_1(&input)?);
+    println!("Part 2 {}", part_2(&input, 5, 60)?);
     Ok(())
 }
 
@@ -63,12 +64,6 @@ fn test_parse() {
     );
 }
 
-fn sorted_hash(hash: HashSet<String>) -> Vec<String> {
-    let mut answer: Vec<_> = hash.iter().cloned().collect();
-    answer.sort();
-    answer
-}
-
 fn part_1(input: &str) -> Result<String> {
     let relationships: Vec<Relationship> = input
         .lines()
@@ -107,6 +102,62 @@ fn part_1(input: &str) -> Result<String> {
     }
 }
 
+fn part_2(input: &str, max_workers: usize, completion_time: u32) -> Result<u32> {
+    let relationships: Vec<Relationship> = input
+        .lines()
+        .map(parse_relationship)
+        .map(|x| x.unwrap())
+        .collect();
+
+    let mut map: HashMap<String, HashSet<String>> = HashMap::new();
+    for relationship in relationships {
+        map.entry(relationship.require.clone())
+            .or_insert_with(HashSet::new);
+        let entry = map.entry(relationship.node).or_insert_with(HashSet::new);
+        entry.insert(relationship.require);
+    }
+
+    let mut turns = 0;
+    let mut workers: HashMap<String, u32> = HashMap::new();
+
+    loop {
+        loop {
+            if workers.len() >= max_workers {
+                break;
+            }
+            let first_node_head: Option<String> = map
+                .iter()
+                .filter(|(_, requirements)| requirements.len() == 0)
+                .map(|(node, _)| node)
+                .cloned()
+                .min();
+            match first_node_head {
+                Some(head) => {
+                    map.remove(&head);
+                    workers.insert(head, turns);
+                }
+                _ => {
+                    break;
+                }
+            }
+        }
+        if workers.len() == 0 {
+            return Ok(turns);
+        }
+        let (done_work, keep_working): (HashMap<_, _>, HashMap<_, _>) =
+            workers.into_iter().partition(|(head, turn)| {
+                (head.as_bytes()[0] as u32) - 65 + completion_time + *turn <= turns
+            });
+        for (head, _) in done_work {
+            map.iter_mut().for_each(|(_, requirements)| {
+                requirements.remove(&head);
+            });
+        }
+        workers = keep_working;
+        turns += 1;
+    }
+}
+
 #[test]
 fn test_1() {
     let input = r#"Step C must be finished before step A can begin.
@@ -117,4 +168,18 @@ Step B must be finished before step E can begin.
 Step D must be finished before step E can begin.
 Step F must be finished before step E can begin."#;
     assert_eq!(&part_1(input).unwrap(), &"CABDFE");
+}
+
+#[test]
+fn test_2() {
+    let input = r#"Step C must be finished before step A can begin.
+Step C must be finished before step F can begin.
+Step A must be finished before step B can begin.
+Step A must be finished before step D can begin.
+Step B must be finished before step E can begin.
+Step D must be finished before step E can begin.
+Step F must be finished before step E can begin."#;
+    assert_eq!(part_2(input, 2, 0).unwrap(), 15);
+    assert_eq!(part_2(input, 3, 0).unwrap(), 14);
+    assert_eq!(part_2(input, 1, 0).unwrap(), 21);
 }
