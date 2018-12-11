@@ -74,6 +74,7 @@ fn part_1(input: &str) -> Result<String> {
         .map(|x| x.unwrap())
         .collect();
 
+    // Construct are relationship mapping of Node -> Set Nodes
     let mut map: HashMap<String, HashSet<String>> = HashMap::new();
     for relationship in relationships {
         map.entry(relationship.require.clone())
@@ -83,11 +84,14 @@ fn part_1(input: &str) -> Result<String> {
     }
 
     let mut answer = String::new();
-
     loop {
+        // Our ending condition is when we no longer have a map to pull
+        // out of
         if map.len() == 0 {
             return Ok(answer);
         }
+
+        // Find the head that is sorted
         let first_node_head: Option<String> = map
             .iter()
             .filter(|(_, requirements)| requirements.len() == 0)
@@ -96,8 +100,11 @@ fn part_1(input: &str) -> Result<String> {
             .min();
 
         if let Some(head) = first_node_head {
+            // Add head to answer
             answer += &head;
+            // Remove from mapping
             map.remove(&head);
+            // Remove the head from all the other required nodes
             map.iter_mut().for_each(|(_, requirements)| {
                 requirements.remove(&head);
             });
@@ -112,6 +119,7 @@ fn part_2(input: &str, max_workers: usize, completion_time: u32) -> Result<u32> 
         .map(|x| x.unwrap())
         .collect();
 
+    // Construct relation map Node -> Set Node
     let mut map: HashMap<String, HashSet<String>> = HashMap::new();
     for relationship in relationships {
         map.entry(relationship.require.clone())
@@ -122,8 +130,8 @@ fn part_2(input: &str, max_workers: usize, completion_time: u32) -> Result<u32> 
 
     let mut turns = 0;
     let mut workers: HashMap<String, u32> = HashMap::new();
-
     loop {
+        // Add in all the head to open workers
         loop {
             if workers.len() >= max_workers {
                 break;
@@ -144,13 +152,16 @@ fn part_2(input: &str, max_workers: usize, completion_time: u32) -> Result<u32> 
                 }
             }
         }
+        // Finnish Condition is when the workers are doing nothing.
         if workers.len() == 0 {
             return Ok(turns);
         }
+        // Split our workers that are still working and those that are done
         let (done_work, keep_working): (HashMap<_, _>, HashMap<_, _>) =
             workers.into_iter().partition(|(head, turn)| {
                 (head.as_bytes()[0] as u32) - 65 + completion_time + *turn <= turns
             });
+        // For the workers that are done remove the requirements from all the other nodes
         for (head, _) in done_work {
             map.iter_mut().for_each(|(_, requirements)| {
                 requirements.remove(&head);
