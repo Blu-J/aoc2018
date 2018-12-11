@@ -7,11 +7,9 @@ use std::collections::HashSet;
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::BufReader;
-use std::{cmp, error::Error, str::FromStr};
+use std::str::FromStr;
 
 type Result<T> = ::std::result::Result<T, Box<::std::error::Error>>;
-type R<A, B> = ::std::result::Result<A, B>;
-type Id = usize;
 
 fn main() -> Result<()> {
     let input = read_input()?;
@@ -33,24 +31,27 @@ struct Relationship {
     node: String,
     require: String,
 }
+impl FromStr for Relationship {
+    type Err = Box<::std::error::Error>;
 
-fn parse_relationship(line: &str) -> Result<Relationship> {
-    lazy_static! {
-        static ref RE: Regex = Regex::new(
-            r"Step (?P<require>\w+) must be finished before step (?P<node>\w+) can begin."
-        )
-        .unwrap();
+    fn from_str(line: &str) -> Result<Relationship> {
+        lazy_static! {
+            static ref RE: Regex = Regex::new(
+                r"Step (?P<require>\w+) must be finished before step (?P<node>\w+) can begin."
+            )
+            .unwrap();
+        }
+
+        let caps = match RE.captures(line.trim()) {
+            None => return Err("Unrecognized relationship".into()),
+            Some(caps) => caps,
+        };
+
+        Ok(Relationship {
+            node: caps["node"].into(),
+            require: caps["require"].into(),
+        })
     }
-
-    let caps = match RE.captures(line.trim()) {
-        None => return Err("Unrecognized relationship".into()),
-        Some(caps) => caps,
-    };
-
-    Ok(Relationship {
-        node: caps["node"].into(),
-        require: caps["require"].into(),
-    })
 }
 
 #[test]
@@ -60,14 +61,16 @@ fn test_parse() {
             node: "A".into(),
             require: "C".into(),
         },
-        parse_relationship("Step C must be finished before step A can begin.").unwrap()
+        "Step C must be finished before step A can begin."
+            .parse()
+            .unwrap()
     );
 }
 
 fn part_1(input: &str) -> Result<String> {
     let relationships: Vec<Relationship> = input
         .lines()
-        .map(parse_relationship)
+        .map(Relationship::from_str)
         .map(|x| x.unwrap())
         .collect();
 
@@ -105,7 +108,7 @@ fn part_1(input: &str) -> Result<String> {
 fn part_2(input: &str, max_workers: usize, completion_time: u32) -> Result<u32> {
     let relationships: Vec<Relationship> = input
         .lines()
-        .map(parse_relationship)
+        .map(Relationship::from_str)
         .map(|x| x.unwrap())
         .collect();
 
