@@ -32,38 +32,29 @@ fn read_input() -> Result<String> {
 }
 
 fn part_1(input: &mut Vec<u32>) -> Result<u32> {
-    let mut answer = 0;
     if input.len() < 2 {
         return Err(format!(
             "Don't have enough for getting the headers out: {:?}",
             input
         ));
     }
-    let mut children_count = input.remove(0);
-    let mut meta_count = input.remove(0);
-    if input.len() < (children_count + meta_count) as usize {
+    let children_count = input.remove(0);
+    let meta_count = input.remove(0) as usize;
+    let child_answer = (0..children_count)
+        .map(|_| part_1(input))
+        .sum::<Result<u32>>()?;
+
+    Ok(meta_count_total(input, meta_count)? + child_answer)
+}
+
+fn meta_count_total(input: &mut Vec<u32>, meta_count: usize) -> Result<u32> {
+    if input.len() < meta_count as usize {
         return Err(format!(
-            "Don't have enough for getting the rest out: {:?} with child={} and meta={}",
-            input, children_count, meta_count
+            "Input={:?} is not long enough to drain {}",
+            input, meta_count
         ));
     }
-    loop {
-        if children_count <= 0 {
-            break;
-        }
-        children_count -= 1;
-        answer += part_1(input)?;
-    }
-
-    loop {
-        if meta_count <= 0 {
-            break;
-        }
-        meta_count -= 1;
-        answer += input.remove(0);
-    }
-
-    Ok(answer)
+    Ok(input.drain(0..meta_count).sum())
 }
 
 #[test]
@@ -73,49 +64,30 @@ fn t_part_1() {
 }
 
 fn part_2(input: &mut Vec<u32>) -> Result<u32> {
-    let mut answer = 0;
     if input.len() < 2 {
         return Err(format!(
             "Don't have enough for getting the headers out: {:?}",
             input
         ));
     }
-    let mut children_count = input.remove(0);
-    let mut meta_count = input.remove(0);
-    if input.len() < (children_count + meta_count) as usize {
+    let children_count = input.remove(0);
+    let meta_count = input.remove(0) as usize;
+    let children_values: Vec<u32> = (0..children_count)
+        .map(|_| part_2(input))
+        .collect::<Result<_>>()?;
+    if children_values.len() == 0 {
+        return meta_count_total(input, meta_count);
+    }
+    if input.len() < meta_count {
         return Err(format!(
-            "Don't have enough for getting the rest out: {:?} with child={} and meta={}",
-            input, children_count, meta_count
+            "Input={:?} is not long enough to drain {}",
+            input, meta_count
         ));
     }
-    let mut children_values: Vec<u32> = Vec::new();
-    loop {
-        if children_count <= 0 {
-            break;
-        }
-        children_count -= 1;
-        children_values.push(part_2(input)?);
-    }
-    if children_values.len() == 0 {
-        loop {
-            if meta_count <= 0 {
-                break;
-            }
-            meta_count -= 1;
-            answer += input.remove(0);
-        }
-    } else {
-        loop {
-            if meta_count <= 0 {
-                break;
-            }
-            meta_count -= 1;
-            if let Some(child_value) = children_values.get((input.remove(0) - 1) as usize) {
-                answer += child_value;
-            }
-        }
-    }
-    Ok(answer)
+    let drained = input.drain(0..meta_count);
+    Ok(drained
+        .filter_map(|i| children_values.get((i - 1) as usize))
+        .sum())
 }
 
 #[test]
