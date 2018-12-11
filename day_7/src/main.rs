@@ -1,11 +1,11 @@
 use lazy_static::lazy_static;
 use regex::Regex;
-use std::collections::HashMap;
-use std::collections::HashSet;
-use std::fs::File;
-use std::io::prelude::*;
-use std::io::BufReader;
-use std::str::FromStr;
+use std::{
+    collections::{HashMap, HashSet},
+    fs::File,
+    io::{prelude::*, BufReader},
+    str::FromStr,
+};
 
 type Result<T> = ::std::result::Result<T, Box<::std::error::Error>>;
 type R<A, B> = ::std::result::Result<A, B>;
@@ -94,8 +94,8 @@ fn part_1(input: &str) -> Result<String> {
             .iter()
             .filter(|(_, requirements)| requirements.len() == 0)
             .map(|(node, _)| node)
-            .cloned()
-            .min();
+            .min()
+            .cloned();
 
         if let Some(head) = first_node_head {
             // Add head to answer
@@ -137,8 +137,8 @@ fn part_2(input: &str, max_workers: usize, completion_time: u32) -> Result<u32> 
                 .iter()
                 .filter(|(_, requirements)| requirements.len() == 0)
                 .map(|(node, _)| node)
-                .cloned()
-                .min();
+                .min()
+                .cloned();
             match first_node_head {
                 Some(head) => {
                     map.remove(&head);
